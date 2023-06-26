@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  SERVICE_PROVIDER
+}
+
+model User {
+  id String @id @default(uuid())
+
+  first_name String
+  last_name  String
+
+  email    String @unique
+  password String
+
+  role Role @default(USER)
+  // service_provider    ServiceProvider? @relation(fields: [service_provider_id], references: [id])
+  // service_provider_id String?          @unique @map("service_provider_id")
+
+  reset_token        String?   @unique
+  reset_token_expiry DateTime?
+
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  items            Item[]
+  orders           Order[]
+  service_provider ServiceProvider[]
+
+  @@map("users")
+}
+
+model ServiceProvider {
+  id          String @id @default(uuid())
+  description String
+
+  CPF     String
+  address String
+  CEP     String
+
+  birth_date DateTime
+
+  user    User   @relation(fields: [user_id], references: [id])
+  user_id String
+
+  @@map("service_provider")
+}
+
+model Item {
+  id          String @id @default(uuid())
+  name        String
+  description String
+  price       Float
+
+  is_active Boolean @default(true)
+
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user_id String
+
+  created_at DateTime    @default(now())
+  updated_at DateTime    @updatedAt
+  OrderItem  OrderItem[]
+
+  @@index([user_id], name: "idx_user_id")
+  @@map("items")
+}
+
+model Order {
+  id          String @id @default(uuid())
+  status      Int    @default(0)
+  total_price Float
+  table       String
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  user_id String
+
+  created_at DateTime    @default(now())
+  updated_at DateTime    @updatedAt
+  OrderItem  OrderItem[]
+
+  @@index([user_id], name: "id_user_id")
+  @@map("orders")
+}
+
+model OrderItem {
+  id       String @id @default(uuid())
+  quantity Int
+
+  order    Order  @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  order_id String
+
+  item    Item   @relation(fields: [item_id], references: [id])
+  item_id String
+
+  @@map("order_items")
+}
